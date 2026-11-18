@@ -5,6 +5,29 @@
     <!-- Main calculator. "Type or paste numbers" returns when pasting into the expression ships. -->
     <string name="calculator_placeholder">Type numbers</string>
 
+    <!-- Onboarding. Say "three dots" and name them "More": phone makers draw this menu differently.
+         Never name an app or a phone brand. -->
+    <string name="onboarding_step">Step %1$d of 2</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_done">Done</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_step1_title">Calculate inside any app</string>
+    <string name="onboarding_step1_body">Select text that has numbers. Tap the three dots, then tap Calculate. On some phones the dots say “More”.</string>
+    <string name="onboarding_illustration">Illustration: select some text, tap the three dots, then tap Calculate in the menu.</string>
+    <string name="onboarding_demo_lead">Lunch </string>
+    <string name="onboarding_demo_selected">₹320 + tip ₹40</string>
+    <string name="onboarding_demo_cut">Cut</string>
+    <string name="onboarding_demo_copy">Copy</string>
+    <string name="onboarding_demo_paste">Paste</string>
+    <string name="onboarding_demo_share">Share</string>
+    <string name="onboarding_demo_select_all">Select all</string>
+    <string name="onboarding_step2_title">Try it on this text</string>
+    <string name="onboarding_step2_body">Touch and hold a word, drag to select the whole line, then tap the three dots and Calculate.</string>
+    <string name="onboarding_practice_label">Practice text</string>
+    <string name="onboarding_practice_text">Tea ₹40 + samosa ₹30 × 2</string>
+    <string name="onboarding_step2_info">Your answer appears in a small box at the bottom. Nothing leaves your phone.</string>
+
     <!-- History -->
     <string name="history_title">History</string>
     <string name="history_back">Back</string>
