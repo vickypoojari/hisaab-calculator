@@ -93,6 +93,22 @@ Then tokens, test-first: contrast and type-scale tests (red on placeholder value
 
 Not in the skeleton yet: Edit expression and "Type it myself", the lakh/crore word line, History saving, and error screens showing the "Read as" expression. Still unverified: how "Calculate" appears inside real apps' selection menus (needs a device pass on at least two phone makers).
 
+## Device findings (API 34 emulator, 2026-11-18)
+
+Checked by hand in two hosts: Android Settings search (a native EditText) and Chrome (a web page with a textarea and plain paragraphs).
+
+| Check | Native field (Settings) | Chrome |
+|---|---|---|
+| "Calculate" appears in the selection toolbar | Yes, under the three dots, after "Read aloud" | Yes, under the three dots, after "Read aloud" |
+| Sheet shows the right reading (`Lunch 320 + 40` → 360; `Lunch ₹320 + tip ₹40` → ₹360 with "Lunch, tip" ignored) | Yes | Yes |
+| **Replace writes the answer back into the field** | **Yes** (field became `360`) | **No: sheet closed, textarea unchanged** |
+| Read-only text: ambiguous banner, Copy primary, no Replace, note shown | not tried | Yes (`Loan ₹2,50,000 12%`) |
+| Copy puts plain digits on the clipboard | not tried | Yes (pasted `30000`) |
+
+- **Discoverability is confirmed as the main risk.** In Chrome the first toolbar for a half-selected word did not show the overflow at all; it appeared only after "Select all". Both toolbars hide Calculate behind the three dots. The onboarding screens are worth shipping with the first build.
+- **Open bug: Replace in Chrome.** The activity returns `RESULT_OK` with `EXTRA_PROCESS_TEXT` and works in a native field, but Chrome did not apply it. Observation: the selection highlight disappears behind the sheet in Chrome while it stays in Settings, so Chrome may drop the selection when it loses focus and then ignore the result. Not yet proven. Next steps: log what the activity returns, try a non-translucent variant to see whether focus is the cause, and check at least one more web-based host.
+- **Test hygiene:** `connectedDebugAndroidTest` uninstalls the app when it finishes, so reinstall (`./gradlew :app:installDebug`) before checking by hand. This cost one false alarm ("Calculate is missing") during this pass.
+
 ## Next cycles (backlog, in order)
 
 1. Unary minus in input (`−5 + 3`); negative results already format correctly.
