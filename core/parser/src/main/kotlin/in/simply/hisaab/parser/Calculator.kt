@@ -17,87 +17,50 @@ public sealed interface CalcResult {
 
     /** The text held no number, so there is nothing to compute. */
     public data object NothingToCalculate : CalcResult
+
+    /** A number was found but the sum cannot be computed. */
+    public data class Error(val reason: ErrorReason) : CalcResult
 }
 
+public enum class ErrorReason { DIVIDE_BY_ZERO, UNREADABLE }
+
 public object Calculator {
-    private val NUMBER = Regex("""\d+(?:,\d+)*(?:\.\d+)?|\.\d+""")
     private val DIVISION = MathContext(10, RoundingMode.HALF_UP)
 
     public fun evaluate(text: String): CalcResult {
-        val numbers = mutableListOf<BigDecimal>()
-        val operators = mutableListOf<Char>()
-        val readAs = mutableListOf<String>()
-        val ignored = mutableListOf<String>()
-        var hasCurrency = false
-        var pendingCurrency = false
-        var index = 0
-        while (index < text.length) {
-            val char = text[index]
-            val number = NUMBER.matchAt(text, index)
-            when {
-                number != null -> {
-                    numbers += BigDecimal(number.value.replace(",", ""))
-                    readAs += (if (pendingCurrency) "₹" else "") + number.value
-                    pendingCurrency = false
-                    index = number.range.last + 1
-                }
-                char == '₹' -> {
-                    hasCurrency = true
-                    pendingCurrency = true
-                    index++
-                }
-                char.isLetter() -> {
-                    val end = text.indexOfFirst(index) { !it.isLetter() }
-                    val word = text.substring(index, end)
-                    if (word == "x" || word == "X") {
-                        operators += '×'
-                        readAs += "×"
-                    } else {
-                        ignored += word
-                    }
-                    index = end
-                }
-                else -> {
-                    operatorFor(char)?.let {
-                        operators += it
-                        readAs += it.toString()
-                    }
-                    index++
-                }
-            }
-        }
-        if (numbers.isEmpty()) return CalcResult.NothingToCalculate
+        val scan = Scanner.scan(text)
+        val tokens = scan.tokens
+        if (tokens.none { it is Token.Num }) return CalcResult.NothingToCalculate
+        if (!isAlternating(tokens)) return CalcResult.Error(ErrorReason.UNREADABLE)
+
+        val value = compute(tokens) ?: return CalcResult.Error(ErrorReason.DIVIDE_BY_ZERO)
         return CalcResult.Success(
-            value = compute(numbers, operators),
-            readAs = readAs.joinToString(" "),
-            ignoredWords = ignored,
-            hasCurrency = hasCurrency,
+            value = value,
+            readAs = tokens.joinToString(" ") { it.display },
+            ignoredWords = scan.ignoredWords,
+            hasCurrency = tokens.any { it is Token.Num && it.currency },
         )
     }
 
-    private fun String.indexOfFirst(from: Int, predicate: (Char) -> Boolean): Int {
-        var i = from
-        while (i < length && !predicate(this[i])) i++
-        return i
-    }
+    /** A sum is number, operator, number, ... starting and ending with a number. */
+    private fun isAlternating(tokens: List<Token>): Boolean =
+        tokens.size % 2 == 1 && tokens.withIndex().all { (i, t) -> (i % 2 == 0) == (t is Token.Num) }
 
-    private fun operatorFor(char: Char): Char? = when (char) {
-        '+' -> '+'
-        '-', '−' -> '−'
-        '×', '*' -> '×'
-        '÷', '/' -> '÷'
-        else -> null
-    }
+    /** Resolves × and ÷ first, then + and −, left to right. Null means division by zero. */
+    private fun compute(tokens: List<Token>): BigDecimal? {
+        val numbers = tokens.filterIsInstance<Token.Num>().map { it.value }
+        val operators = tokens.filterIsInstance<Token.Op>().map { it.symbol }
 
-    /** Resolves × and ÷ first, then + and −, left to right. */
-    private fun compute(numbers: List<BigDecimal>, operators: List<Char>): BigDecimal {
         val terms = mutableListOf(numbers.first())
         val addOps = mutableListOf<Char>()
         operators.forEachIndexed { i, op ->
             val next = numbers[i + 1]
             when (op) {
                 '×' -> terms[terms.lastIndex] = terms.last() * next
-                '÷' -> terms[terms.lastIndex] = terms.last().divide(next, DIVISION)
+                '÷' -> {
+                    if (next.signum() == 0) return null
+                    terms[terms.lastIndex] = terms.last().divide(next, DIVISION)
+                }
                 else -> {
                     addOps += op
                     terms += next
@@ -109,5 +72,65 @@ public object Calculator {
             total = if (op == '+') total + terms[i + 1] else total - terms[i + 1]
         }
         return total.stripTrailingZeros().let { if (it.scale() < 0) it.setScale(0) else it }
+    }
+}
+
+internal sealed interface Token {
+    val display: String
+
+    data class Num(val value: BigDecimal, val text: String, val currency: Boolean) : Token {
+        override val display: String get() = (if (currency) "₹" else "") + text
+    }
+
+    data class Op(val symbol: Char) : Token {
+        override val display: String get() = symbol.toString()
+    }
+}
+
+internal data class ScanResult(val tokens: List<Token>, val ignoredWords: List<String>)
+
+internal object Scanner {
+    private val NUMBER = Regex("""\d+(?:,\d+)*(?:\.\d+)?|\.\d+""")
+
+    fun scan(text: String): ScanResult {
+        val tokens = mutableListOf<Token>()
+        val ignored = mutableListOf<String>()
+        var pendingCurrency = false
+        var index = 0
+        while (index < text.length) {
+            val char = text[index]
+            val number = NUMBER.matchAt(text, index)
+            when {
+                number != null -> {
+                    tokens += Token.Num(BigDecimal(number.value.replace(",", "")), number.value, pendingCurrency)
+                    pendingCurrency = false
+                    index = number.range.last + 1
+                }
+                char == '₹' -> {
+                    pendingCurrency = true
+                    index++
+                }
+                char.isLetter() -> {
+                    var end = index
+                    while (end < text.length && text[end].isLetter()) end++
+                    val word = text.substring(index, end)
+                    if (word == "x" || word == "X") tokens += Token.Op('×') else ignored += word
+                    index = end
+                }
+                else -> {
+                    operatorFor(char)?.let { tokens += Token.Op(it) }
+                    index++
+                }
+            }
+        }
+        return ScanResult(tokens, ignored)
+    }
+
+    private fun operatorFor(char: Char): Char? = when (char) {
+        '+' -> '+'
+        '-', '−' -> '−'
+        '×', '*' -> '×'
+        '÷', '/' -> '÷'
+        else -> null
     }
 }
