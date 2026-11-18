@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Per-app language list. Hindi and Tamil are reserved: add values-hi/ and values-ta/ string
+     resources when those weeks start; nothing else needs to change. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="hi" />
+    <locale android:name="ta" />
+</locale-config>

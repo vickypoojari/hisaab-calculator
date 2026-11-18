@@ -10,19 +10,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import `in`.simply.hisaab.ui.theme.HisaabCalculatorTheme
+import `in`.simply.hisaab.core.designsystem.HisaabTheme
 
+/**
+ * Placeholder shell. The walking skeleton (select text -> parser -> result sheet) replaces this.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            HisaabCalculatorTheme {
+            HisaabTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        modifier = Modifier.padding(innerPadding),
                     )
                 }
             }
@@ -30,18 +34,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    HisaabCalculatorTheme {
-        Greeting("Android")
-    }
+private fun ShellPreview() {
+    HisaabTheme { Text(stringResource(R.string.app_name)) }
 }
