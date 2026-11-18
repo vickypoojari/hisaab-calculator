@@ -12,4 +12,5 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     testImplementation(libs.junit)
+    testImplementation(kotlin("test-junit"))
 }
