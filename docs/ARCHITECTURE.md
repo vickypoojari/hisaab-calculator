@@ -33,7 +33,7 @@ Allowed directions: `app → core:*`; `feature packages → core:*`; `core:parse
 
 ### Feature packages inside `:app`
 
-`feature.selection` (walking skeleton) and `feature.calculator` exist. `feature.history` exists too. Planned: `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
+`feature.selection` (walking skeleton) and `feature.calculator` exist. `feature.history` and `feature.onboarding` exist too. Planned: `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
 
 ### Version catalog and convention plugins
 
@@ -121,6 +121,18 @@ Decisions to know about:
 - **Reuse replaces the whole expression** with the saved result; it does not append.
 - **Not done:** the More menu, the hint chip, "Settings" (number format, theme), the wide-screen layout, an editable expression field.
 
+## Onboarding, hint chip and More menu (done, test-first)
+
+23. **`OnboardingProgress` and `HintChip`** (JVM): first launch shows onboarding until it is finished or skipped; the chip shows on at most three launches (one question per launch uses up a showing), and never again once dismissed or used.
+24. **`OnboardingScreen`** (device tests): step 1 with a drawn selection toolbar (three dots ringed and numbered 1, "Calculate" ringed and numbered 2, described once for TalkBack), step 2 with a real selectable practice line; Skip on both, Next, Back, Done.
+25. **`AppRoot`** (device tests): onboarding on first launch, the hint chip on the empty calculator (dismiss, or tap to open the how-to), and a More menu with "How to use Calculate" and "About". The calculator keeps what was typed while onboarding is open.
+
+A bug report ("Next and Skip do nothing") could not be reproduced on the emulator, but looking for it found real layout defects, now fixed with tests: with the largest text size or a short screen Next/Done scrolled out of reach (the buttons are now pinned, only the explanation scrolls), the demo toolbar labels wrapped, badge 1 was clipped by a shadow, and a trailing space in a string resource was trimmed away (quote strings that need one).
+
+Left out on purpose: **Settings** (number format Indian/International, theme) is not in the More menu because nothing behind it exists yet; a menu item that does nothing is worse than no item.
+
+Tips for testing by hand: `connectedDebugAndroidTest` uninstalls the app and drives screens on the emulator that do not respond to taps, so reinstall with `./gradlew :app:installDebug` and clear data (`adb shell pm clear in.simply.hisaab`) to see the first-launch flow. A single test class: `-Pandroid.testInstrumentationRunnerArguments.class=<full.class.Name>` (the Android task has no `--tests`).
+
 ## Device findings (API 34 emulator, 2026-11-18)
 
 Checked by hand in two hosts: Android Settings search (a native EditText) and Chrome (a web page with a textarea and plain paragraphs).
@@ -149,7 +161,7 @@ Checked by hand in two hosts: Android Settings search (a native EditText) and Ch
 4. Words as operators (`into`, `plus`, `minus`) and `@` read as ×.
 5. Devanagari and Tamil digits on input; spoken form for TalkBack ("two lakh five thousand").
 6. A corpus-driven test: one file of real messy strings with expected results, one parameterised test.
-7. More menu (Settings for Indian/International grouping and theme, How to use Calculate, About) and the hint chip with its three-showings counter; onboarding. Wide-screen layout and an editable expression field.
+7. Settings (Indian/International grouping, theme) and then the item in the More menu; the home-screen widget; the wide-screen layout; an editable expression field with paste; Hindi and Tamil strings.
 8. Onboarding, then the widget (the first second consumer, so extract `feature:*` modules then).
 
 ## Assumptions and risks

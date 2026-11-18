@@ -17,9 +17,18 @@ import `in`.simply.hisaab.feature.history.HistoryActions
 import `in`.simply.hisaab.feature.history.HistoryGrouping
 import `in`.simply.hisaab.feature.history.HistoryRecorder
 import `in`.simply.hisaab.feature.history.HistoryScreen
+import `in`.simply.hisaab.feature.onboarding.HintChip
 import java.util.TimeZone
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,9 +78,16 @@ import `in`.simply.hisaab.parser.ErrorReason
  * to [history], and switches to the History screen.
  */
 @Composable
-fun CalculatorRoute(history: HistoryRepository, modifier: Modifier = Modifier) {
+fun CalculatorRoute(
+    history: HistoryRepository,
+    modifier: Modifier = Modifier,
+    hintChip: HintChip? = null,
+    onShowHowTo: (() -> Unit)? = null,
+) {
     var expression by rememberSaveable { mutableStateOf("") }
     var showHistory by rememberSaveable { mutableStateOf(false) }
+    // Asking uses up one of the chip's three showings, so ask once and remember the answer.
+    var chipShown by rememberSaveable { mutableStateOf(hintChip?.isVisibleThisLaunch() == true) }
     val context = LocalContext.current
 
     if (showHistory) {
@@ -103,6 +119,10 @@ fun CalculatorRoute(history: HistoryRepository, modifier: Modifier = Modifier) {
                 expression = CalculatorReducer.press(expression, key)
             },
             onOpenHistory = { showHistory = true },
+            hintChipVisible = chipShown,
+            onHintChipOpen = { hintChip?.opened(); chipShown = false; onShowHowTo?.invoke() },
+            onHintChipDismiss = { hintChip?.dismiss(); chipShown = false },
+            onShowHowTo = onShowHowTo,
             modifier = modifier,
         )
     }
@@ -114,8 +134,14 @@ fun CalculatorScreen(
     onKey: (CalculatorKey) -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    hintChipVisible: Boolean = false,
+    onHintChipOpen: () -> Unit = {},
+    onHintChipDismiss: () -> Unit = {},
+    onShowHowTo: (() -> Unit)? = null,
 ) {
     val display = remember(expression) { CalculatorDisplay.from(expression) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var aboutOpen by remember { mutableStateOf(false) }
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 16.dp, end = 4.dp),
@@ -129,10 +155,72 @@ fun CalculatorScreen(
             IconButton(onClick = onOpenHistory, modifier = Modifier.size(HisaabDimens.MinTouchTargetDp.dp)) {
                 Icon(HistoryIcon, contentDescription = stringResource(R.string.history_title))
             }
+            if (onShowHowTo != null) {
+                Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(HisaabDimens.MinTouchTargetDp.dp)) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.more_how_to)) },
+                            onClick = { menuOpen = false; onShowHowTo() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.more_about)) },
+                            onClick = { menuOpen = false; aboutOpen = true },
+                        )
+                    }
+                }
+            }
         }
+        if (hintChipVisible && display.isEmpty) HintChipRow(onHintChipOpen, onHintChipDismiss)
         DisplayZone(display, Modifier.weight(1f))
         Keypad(display, onKey)
     }
+    if (aboutOpen) AboutDialog(onClose = { aboutOpen = false })
+}
+
+/** "Calculate from any app: see how". The text opens the how-to; the X dismisses it for good. */
+@Composable
+private fun HintChipRow(onOpen: () -> Unit, onDismiss: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp)
+            .fillMaxWidth()
+            .heightIn(min = HisaabDimens.MinTouchTargetDp.dp)
+            .background(scheme.primaryContainer, RoundedCornerShape(24.dp)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.hint_chip_text),
+            style = LocalHisaabTypeScale.current.label.toTextStyle(),
+            color = scheme.onPrimaryContainer,
+            modifier = Modifier.weight(1f).clickable(onClick = onOpen).heightIn(min = HisaabDimens.MinTouchTargetDp.dp).padding(start = 16.dp).wrapContentHeight(Alignment.CenterVertically),
+        )
+        IconButton(onClick = onDismiss, modifier = Modifier.size(HisaabDimens.MinTouchTargetDp.dp)) {
+            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.hint_chip_dismiss), tint = scheme.onPrimaryContainer)
+        }
+    }
+}
+
+@Composable
+private fun AboutDialog(onClose: () -> Unit) {
+    val context = LocalContext.current
+    val version = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
+    }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(stringResource(R.string.app_brand)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.about_version, version))
+                Text(stringResource(R.string.selection_privacy))
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.about_close)) } },
+    )
 }
 
 /** The clock-with-arrow from the board, drawn from its stroke paths so it follows the theme colour. */

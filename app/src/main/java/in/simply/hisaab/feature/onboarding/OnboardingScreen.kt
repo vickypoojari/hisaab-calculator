@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -66,7 +66,6 @@ fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -81,8 +80,14 @@ fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.onboarding_skip), style = LocalHisaabTypeScale.current.body.toTextStyle())
             }
         }
-        if (step == 1) StepOne() else StepTwo()
-        Spacer(Modifier.weight(1f, fill = false).heightIn(min = 8.dp))
+        // Only the explanation scrolls. With big text or a short screen the buttons below must stay
+        // in reach, so they are never part of the scrolling area.
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (step == 1) StepOne() else StepTwo()
+        }
         PageDots(current = step)
         if (step == 1) {
             PillButton(stringResource(R.string.onboarding_next)) { step = 2 }
@@ -173,7 +178,7 @@ private fun Illustration() {
             style = LocalHisaabTypeScale.current.bodyL.toTextStyle(),
         )
         Row(
-            Modifier.shadow(4.dp, RoundedCornerShape(28.dp)).background(LocalHisaabColors.current.keySurface, RoundedCornerShape(28.dp)).padding(horizontal = 4.dp),
+            Modifier.shadow(4.dp, RoundedCornerShape(28.dp), clip = false).background(LocalHisaabColors.current.keySurface, RoundedCornerShape(28.dp)).padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             listOf(R.string.onboarding_demo_cut, R.string.onboarding_demo_copy, R.string.onboarding_demo_paste).forEach {
@@ -188,7 +193,7 @@ private fun Illustration() {
             Modifier
                 .align(Alignment.End)
                 .width(216.dp)
-                .shadow(4.dp, RoundedCornerShape(16.dp))
+                .shadow(4.dp, RoundedCornerShape(16.dp), clip = false)
                 .background(LocalHisaabColors.current.keySurface, RoundedCornerShape(16.dp))
                 .padding(vertical = 4.dp),
         ) {
@@ -201,8 +206,8 @@ private fun Illustration() {
 
 @Composable
 private fun ToolbarItem(label: String) {
-    Box(Modifier.size(width = MinTarget, height = MinTarget).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-        Text(label, style = LocalHisaabTypeScale.current.label.toTextStyle())
+    Box(Modifier.defaultMinSize(minWidth = MinTarget, minHeight = MinTarget).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+        Text(label, style = LocalHisaabTypeScale.current.label.toTextStyle(), maxLines = 1, softWrap = false)
     }
 }
 

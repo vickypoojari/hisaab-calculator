@@ -25,7 +25,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             HisaabTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    CalculatorRoute(history = (application as HisaabApp).history, modifier = Modifier.padding(innerPadding))
+                    val app = application as HisaabApp
+                    AppRoot(
+                        history = app.history,
+                        progress = app.onboardingProgress,
+                        hintChip = app.hintChip,
+                        modifier = Modifier.padding(innerPadding),
+                    )
                 }
             }
         }
