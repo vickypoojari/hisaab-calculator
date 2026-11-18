@@ -14,6 +14,9 @@ public sealed interface CalcResult {
         /** True when the source text marked at least one amount with ₹. */
         val hasCurrency: Boolean,
     ) : CalcResult
+
+    /** The text held no number, so there is nothing to compute. */
+    public data object NothingToCalculate : CalcResult
 }
 
 public object Calculator {
@@ -63,6 +66,7 @@ public object Calculator {
                 }
             }
         }
+        if (numbers.isEmpty()) return CalcResult.NothingToCalculate
         return CalcResult.Success(
             value = compute(numbers, operators),
             readAs = readAs.joinToString(" "),
