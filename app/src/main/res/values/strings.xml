@@ -5,6 +5,21 @@
     <!-- Main calculator. "Type or paste numbers" returns when pasting into the expression ships. -->
     <string name="calculator_placeholder">Type numbers</string>
 
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_back">Back</string>
+    <string name="history_clear_all">Clear all</string>
+    <string name="history_today">TODAY</string>
+    <string name="history_yesterday">YESTERDAY</string>
+    <string name="history_from_selected_text">From selected text</string>
+    <string name="history_empty">No sums yet. Your answers will show up here.</string>
+    <string name="history_copy">Copy</string>
+    <string name="history_delete">Delete</string>
+    <string name="history_clear_title">Clear all history?</string>
+    <string name="history_clear_body">This removes every saved sum from this phone.</string>
+    <string name="history_clear_confirm">Clear</string>
+    <string name="history_cancel">Cancel</string>
+
     <!-- Text-selection sheet. Hindi (values-hi) and Tamil (values-ta) strings run 30-40% longer:
          never give these a fixed width. -->
     <string name="selection_action_label">Calculate</string>
