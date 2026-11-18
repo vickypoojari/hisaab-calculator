@@ -29,3 +29,12 @@ interface HistoryStore {
     /** Keeps only the newest [max] entries. */
     fun trimTo(max: Int)
 }
+
+/** Keeps nothing. For previews, where there is no database. */
+object NoHistoryStore : HistoryStore {
+    override fun load(): List<HistoryEntry> = emptyList()
+    override fun insert(entry: NewHistoryEntry) = HistoryEntry(0, entry.expression, entry.result, entry.value, entry.source, entry.createdAt)
+    override fun delete(id: Long) = Unit
+    override fun clear() = Unit
+    override fun trimTo(max: Int) = Unit
+}

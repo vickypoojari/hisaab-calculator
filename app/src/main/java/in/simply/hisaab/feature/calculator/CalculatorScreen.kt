@@ -1,5 +1,23 @@
 package `in`.simply.hisaab.feature.calculator
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.platform.LocalContext
+import `in`.simply.hisaab.core.designsystem.HisaabDimens
+import `in`.simply.hisaab.feature.history.HistoryActions
+import `in`.simply.hisaab.feature.history.HistoryGrouping
+import `in`.simply.hisaab.feature.history.HistoryRecorder
+import `in`.simply.hisaab.feature.history.HistoryScreen
+import java.util.TimeZone
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -43,30 +61,94 @@ import `in`.simply.hisaab.R
 import `in`.simply.hisaab.core.designsystem.LocalHisaabColors
 import `in`.simply.hisaab.core.designsystem.LocalHisaabTypeScale
 import `in`.simply.hisaab.core.designsystem.toTextStyle
+import `in`.simply.hisaab.feature.history.HistoryRepository
 import `in`.simply.hisaab.parser.ErrorReason
 
-/** Stateful calculator: owns the expression and wires the keypad to the reducer. */
+/**
+ * Stateful calculator: owns the expression, wires the keypad to the reducer, saves committed sums
+ * to [history], and switches to the History screen.
+ */
 @Composable
-fun CalculatorRoute(modifier: Modifier = Modifier) {
+fun CalculatorRoute(history: HistoryRepository, modifier: Modifier = Modifier) {
     var expression by rememberSaveable { mutableStateOf("") }
-    CalculatorScreen(
-        expression = expression,
-        onKey = { key -> expression = CalculatorReducer.press(expression, key) },
-        modifier = modifier,
-    )
+    var showHistory by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    if (showHistory) {
+        BackHandler { showHistory = false }
+        val entries by history.entries.collectAsState()
+        val sections = remember(entries) { HistoryGrouping.group(entries, System.currentTimeMillis(), TimeZone.getDefault()) }
+        HistoryScreen(
+            sections = sections,
+            actions = HistoryActions(
+                onBack = { showHistory = false },
+                // Tap reuses the result: it becomes the expression, with the real minus sign.
+                onReuse = { entry -> expression = entry.value.replace('-', '−'); showHistory = false },
+                onCopy = { entry ->
+                    context.getSystemService(ClipboardManager::class.java)
+                        .setPrimaryClip(ClipData.newPlainText("Hisaab result", entry.value))
+                },
+                onDelete = { entry -> history.delete(entry.id) },
+                onClearAll = { history.clear() },
+            ),
+            modifier = modifier,
+        )
+    } else {
+        CalculatorScreen(
+            expression = expression,
+            onKey = { key ->
+                if (key == CalculatorKey.EQUALS) {
+                    HistoryRecorder.fromCalculator(expression, System.currentTimeMillis())?.let(history::add)
+                }
+                expression = CalculatorReducer.press(expression, key)
+            },
+            onOpenHistory = { showHistory = true },
+            modifier = modifier,
+        )
+    }
 }
 
 @Composable
-fun CalculatorScreen(expression: String, onKey: (CalculatorKey) -> Unit, modifier: Modifier = Modifier) {
+fun CalculatorScreen(
+    expression: String,
+    onKey: (CalculatorKey) -> Unit,
+    onOpenHistory: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val display = remember(expression) { CalculatorDisplay.from(expression) }
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Box(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
-            Text(stringResource(R.string.app_brand), style = LocalHisaabTypeScale.current.title.toTextStyle())
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 16.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.app_brand),
+                style = LocalHisaabTypeScale.current.title.toTextStyle(),
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onOpenHistory, modifier = Modifier.size(HisaabDimens.MinTouchTargetDp.dp)) {
+                Icon(HistoryIcon, contentDescription = stringResource(R.string.history_title))
+            }
         }
         DisplayZone(display, Modifier.weight(1f))
         Keypad(display, onKey)
     }
 }
+
+/** The clock-with-arrow from the board, drawn from its stroke paths so it follows the theme colour. */
+private val HistoryIcon: ImageVector = ImageVector.Builder(
+    name = "History", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+).apply {
+    listOf("M3 12a9 9 0 109-9", "M3 4v5h5", "M12 7v5l3 2").forEach { path ->
+        addPath(
+            pathData = addPathNodes(path),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+    }
+}.build()
 
 @Composable
 private fun DisplayZone(display: CalculatorDisplay, modifier: Modifier = Modifier) {

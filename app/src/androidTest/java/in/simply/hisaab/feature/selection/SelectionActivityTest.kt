@@ -10,7 +10,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
+import `in`.simply.hisaab.HisaabApp
+import `in`.simply.hisaab.feature.history.HistoryRepository
+import `in`.simply.hisaab.feature.history.HistorySource
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -23,6 +27,12 @@ class SelectionActivityTest {
 
     @get:Rule
     val compose = createEmptyComposeRule()
+
+    private fun appHistory(): HistoryRepository =
+        (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as HisaabApp).history
+
+    @Before
+    fun clearHistory() = appHistory().clear()
 
     private fun processText(text: String?, readOnly: Boolean = false): Intent {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -117,5 +127,44 @@ class SelectionActivityTest {
         ActivityScenario.launchActivityForResult<SelectionActivity>(processText(null)).use {
             compose.onNodeWithText("No numbers to calculate").assertExists()
         }
+    }
+
+    // --- History: successful results are kept, captioned "From selected text" ---
+
+    @Test
+    fun a_successful_result_is_kept_in_history_even_if_the_sheet_is_just_closed() {
+        ActivityScenario.launchActivityForResult<SelectionActivity>(
+            processText("Order Zomato ₹1,200 + ₹450 delivery"),
+        ).use {
+            compose.onNodeWithContentDescription("Close").performClick()
+        }
+
+        val saved = appHistory().entries.value.single()
+        assertEquals("₹1,200 + ₹450", saved.expression)
+        assertEquals("₹1,650", saved.result)
+        assertEquals(HistorySource.SELECTED_TEXT, saved.source)
+    }
+
+    @Test
+    fun an_ambiguous_result_is_kept_as_the_reading_that_was_chosen() {
+        ActivityScenario.launchActivityForResult<SelectionActivity>(processText("Loan ₹2,50,000 12%")).use {
+            compose.onNodeWithText("₹2,50,000 + 12%").performClick()
+            compose.onNodeWithText("Replace with ₹2,80,000").performClick()
+        }
+
+        val saved = appHistory().entries.value.single()
+        assertEquals("₹2,50,000 + 12%", saved.expression)
+        assertEquals("₹2,80,000", saved.result)
+    }
+
+    @Test
+    fun text_that_is_not_a_sum_is_not_kept() {
+        listOf("Reaching by evening, call me", "Split ₹1,200 ÷ 0", "Total ₹450").forEach { text ->
+            ActivityScenario.launchActivityForResult<SelectionActivity>(processText(text)).use {
+                compose.onNodeWithContentDescription("Close").performClick()
+            }
+        }
+
+        assertTrue(appHistory().entries.value.isEmpty())
     }
 }

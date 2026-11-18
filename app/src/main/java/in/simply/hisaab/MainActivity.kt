@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import `in`.simply.hisaab.core.designsystem.HisaabTheme
 import `in`.simply.hisaab.feature.calculator.CalculatorRoute
+import `in`.simply.hisaab.feature.history.HistoryRepository
+import `in`.simply.hisaab.feature.history.NoHistoryStore
 
 /**
  * Hosts the main calculator. The result sheet is a separate entry point (SelectionActivity).
@@ -23,7 +25,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             HisaabTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    CalculatorRoute(modifier = Modifier.padding(innerPadding))
+                    CalculatorRoute(history = (application as HisaabApp).history, modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -33,5 +35,5 @@ class MainActivity : ComponentActivity() {
 @Preview(showBackground = true)
 @Composable
 private fun CalculatorPreview() {
-    HisaabTheme { CalculatorRoute() }
+    HisaabTheme { CalculatorRoute(history = androidx.compose.runtime.remember { HistoryRepository(NoHistoryStore) }) }
 }

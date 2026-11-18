@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import `in`.simply.hisaab.HisaabApp
 import `in`.simply.hisaab.MainActivity
+import `in`.simply.hisaab.feature.history.HistoryRecorder
 import `in`.simply.hisaab.R
 import `in`.simply.hisaab.core.designsystem.HisaabTheme
 
@@ -40,9 +42,13 @@ class SelectionActivity : ComponentActivity() {
         val selectedText = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString().orEmpty()
         val canReplace = !intent.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false)
 
+        val opened = SelectionPresenter.present(selectedText, canReplace)
+        // A clear result is kept in History even if the sheet is just closed.
+        if (savedInstanceState == null && opened is SelectionUiState.Success) record(opened)
+
         setContent {
             HisaabTheme {
-                val base = remember(selectedText, canReplace) { SelectionPresenter.present(selectedText, canReplace) }
+                val base = remember(selectedText, canReplace) { opened }
                 var chosen by rememberSaveable { mutableIntStateOf(0) }
                 val state = if (base is SelectionUiState.Ambiguous) base.select(chosen) else base
 
@@ -57,8 +63,8 @@ class SelectionActivity : ComponentActivity() {
                     SelectionSheet(
                         state = state,
                         actions = SelectionActions(
-                            onReplace = ::replaceAndClose,
-                            onCopy = ::copyAndClose,
+                            onReplace = { text -> record(state); replaceAndClose(text) },
+                            onCopy = { text -> record(state); copyAndClose(text) },
                             onSelectReading = { chosen = it },
                             onOpenApp = ::openAppAndClose,
                             onClose = { finish() },
@@ -91,6 +97,11 @@ class SelectionActivity : ComponentActivity() {
 
     private fun putOnClipboard(text: String) {
         getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Hisaab result", text))
+    }
+
+    /** Saves the result being shown (for an ambiguous one, the reading chosen) to History. */
+    private fun record(state: SelectionUiState) {
+        HistoryRecorder.fromSelection(state, System.currentTimeMillis())?.let { (application as HisaabApp).history.add(it) }
     }
 
     private fun openAppAndClose() {

@@ -12,6 +12,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.test.platform.app.InstrumentationRegistry
+import `in`.simply.hisaab.feature.history.HistoryRepository
+import `in`.simply.hisaab.feature.history.SqliteHistoryStore
 import `in`.simply.hisaab.core.designsystem.HisaabTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -22,7 +25,13 @@ class CalculatorScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun show() = compose.setContent { HisaabTheme { CalculatorRoute() } }
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun show() {
+        context.deleteDatabase("calc-screen-test.db")
+        val history = HistoryRepository(SqliteHistoryStore(context, "calc-screen-test.db"))
+        compose.setContent { HisaabTheme { CalculatorRoute(history) } }
+    }
 
     private fun press(vararg keys: CalculatorKey) = keys.forEach {
         compose.onNodeWithContentDescription(it.spoken).performClick()
