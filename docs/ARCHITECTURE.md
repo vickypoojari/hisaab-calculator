@@ -33,7 +33,7 @@ Allowed directions: `app → core:*`; `feature packages → core:*`; `core:parse
 
 ### Feature packages inside `:app`
 
-`feature.selection` (walking skeleton) and `feature.calculator` exist. Planned: `feature.history`, `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
+`feature.selection` (walking skeleton) and `feature.calculator` exist. `feature.history` exists too. Planned: `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
 
 ### Version catalog and convention plugins
 
@@ -106,6 +106,21 @@ Decisions and differences from the board:
 - **Placeholder** reads "Type numbers" until pasting into the expression exists; the board says "Type or paste numbers".
 - **Not built yet on this screen:** History and More buttons (hidden rather than dead), the hint chip (needs storage to count three showings), editing the expression as a real text field and pasting, hold-to-repeat on backspace, the wide-screen layout (display left, keypad right, from 600 dp), scientific notation over 15 digits. The emulator named `New_Device` is about 1080 dp wide, so on it the phone layout just stretches; use `adb shell wm density 420` to see the phone design.
 
+## History (done, test-first)
+
+17. **`HistoryRepository`** (JVM, fake store): newest first, the same sum twice in a row kept once (same source), capped at 500 with the oldest dropped, delete, clear all.
+18. **`HistoryGrouping`** (JVM): Today, Yesterday, then dated groups, in the viewer's time zone (an entry at 00:30 India time is "today" there but "yesterday" in UTC); uses `Calendar`, not `java.time`, because minSdk is 24.
+19. **`HistoryRecorder`** (JVM): what is worth saving. A sum from `=` is saved as shown; a lone number, a trailing-operator leftover, a failed sum, nothing-to-calculate and errors are not. A selected-text result is saved with its reading and "From selected text"; for an ambiguous one, the reading that was chosen.
+20. **`SqliteHistoryStore`** (device tests): the framework's own SQLite, so no Room, no annotation processing and no new dependency. Ordered by insertion id so a clock change cannot reshuffle the list. ₹ and the real minus round-trip.
+21. **`HistoryScreen`** (device tests): day headers, rows at least 72 dp, caption on selected-text rows, tap reuses the result, long-press Copy/Delete (also exposed as TalkBack custom actions), Clear all behind a confirmation, empty message.
+22. **Wiring** (device tests): `=` saves, the History button on the calculator, tap-to-reuse puts the result (with the real minus) into the expression, Back returns to the calculator untouched, the sheet saves a clear result even if it is only closed (as the spec says), an ambiguous one when Replace or Copy is used.
+
+Decisions to know about:
+- **Privacy:** History holds what people calculated, often money, and the sheet promises "Nothing is sent anywhere", so `history.db` is excluded from cloud backup (both the Android 11 and Android 12+ rule files). A direct phone-to-phone transfer still carries it.
+- **Database on the main thread:** loading and saving touch at most 500 small rows, so it is done inline for now. If it ever shows up as jank, move the store calls behind a background dispatcher; the repository is the only caller.
+- **Reuse replaces the whole expression** with the saved result; it does not append.
+- **Not done:** the More menu, the hint chip, "Settings" (number format, theme), the wide-screen layout, an editable expression field.
+
 ## Device findings (API 34 emulator, 2026-11-18)
 
 Checked by hand in two hosts: Android Settings search (a native EditText) and Chrome (a web page with a textarea and plain paragraphs).
@@ -134,7 +149,7 @@ Checked by hand in two hosts: Android Settings search (a native EditText) and Ch
 4. Words as operators (`into`, `plus`, `minus`) and `@` read as ×.
 5. Devanagari and Tamil digits on input; spoken form for TalkBack ("two lakh five thousand").
 6. A corpus-driven test: one file of real messy strings with expected results, one parameterised test.
-7. History: storage, the History screen, saving from `=` and from the sheet; then the More menu and the hint chip. Wide-screen layout and an editable expression field.
+7. More menu (Settings for Indian/International grouping and theme, How to use Calculate, About) and the hint chip with its three-showings counter; onboarding. Wide-screen layout and an editable expression field.
 8. Onboarding, then the widget (the first second consumer, so extract `feature:*` modules then).
 
 ## Assumptions and risks
