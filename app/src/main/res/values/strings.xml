@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Hisaab - Calculator</string>
+    <string name="app_brand">Hisaab</string>
+
+    <!-- Main calculator. "Type or paste numbers" returns when pasting into the expression ships. -->
+    <string name="calculator_placeholder">Type numbers</string>
 
     <!-- Text-selection sheet. Hindi (values-hi) and Tamil (values-ta) strings run 30-40% longer:
          never give these a fixed width. -->

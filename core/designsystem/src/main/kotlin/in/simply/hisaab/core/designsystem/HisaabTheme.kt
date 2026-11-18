@@ -69,7 +69,7 @@ private fun HisaabColors.toMaterial(dark: Boolean) =
         )
     }
 
-private fun HisaabTextStyleToken.style(): TextStyle = TextStyle(
+public fun HisaabTextStyleToken.toTextStyle(): TextStyle = TextStyle(
     fontSize = sizeSp.sp,
     lineHeight = lineHeightSp.sp,
     fontWeight = FontWeight(weight),
@@ -77,12 +77,12 @@ private fun HisaabTextStyleToken.style(): TextStyle = TextStyle(
 )
 
 private fun HisaabTypeScale.toMaterial() = Typography(
-    displayLarge = numberXl.style(),
-    displayMedium = numberL.style(),
-    displaySmall = numberM.style(),
-    titleLarge = title.style(),
-    bodyLarge = bodyL.style(),
-    bodyMedium = body.style(),
-    labelLarge = label.style(),
-    labelSmall = caption.style(),
+    displayLarge = numberXl.toTextStyle(),
+    displayMedium = numberL.toTextStyle(),
+    displaySmall = numberM.toTextStyle(),
+    titleLarge = title.toTextStyle(),
+    bodyLarge = bodyL.toTextStyle(),
+    bodyMedium = body.toTextStyle(),
+    labelLarge = label.toTextStyle(),
+    labelSmall = caption.toTextStyle(),
 )

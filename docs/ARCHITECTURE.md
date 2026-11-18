@@ -33,7 +33,7 @@ Allowed directions: `app → core:*`; `feature packages → core:*`; `core:parse
 
 ### Feature packages inside `:app`
 
-`feature.selection` exists (walking skeleton, below). Planned: `feature.calculator`, `feature.history`, `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
+`feature.selection` (walking skeleton) and `feature.calculator` exist. Planned: `feature.history`, `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
 
 ### Version catalog and convention plugins
 
@@ -93,6 +93,19 @@ Then tokens, test-first: contrast and type-scale tests (red on placeholder value
 
 Not in the skeleton yet: Edit expression and "Type it myself", the lakh/crore word line, History saving, and error screens showing the "Read as" expression. Still unverified: how "Calculate" appears inside real apps' selection menus (needs a device pass on at least two phone makers).
 
+## Main calculator screen (done, test-first)
+
+12. **Word line** (`AmountWords`): `2.05 lakh`, `1 crore` (99.999 lakh rounds up to a crore), `1,234.57 crore`, `−2.05 lakh`; nothing under one lakh.
+13. **Leading minus** (parser): `−5 + 3`, `−₹1,200 + ₹450` keep the sign; only the very first minus is a sign, `5 − −3` stays unreadable. Needed so a negative result can carry on.
+14. **`CalculatorReducer`** (JVM): what each of the 20 keys does to the raw expression: no doubled leading zeros, one decimal point per number, an operator replaces the previous one, percent only after a digit, 15-digit cap per number, `=` commits a plain-digit result (real minus kept) and leaves an uncomputable expression alone.
+15. **`CalculatorDisplay`** (JVM): grouped and spaced expression, live result (a trailing operator shows the running value), word line, error state with `=` disabled.
+16. **`CalculatorScreen`** (Compose, 7 device tests): empty state, 4 × 5 keypad with the design's key styling and 72 × 64 dp minimum, live result that shrinks to 32 sp before wrapping, error line with icon and live region. Checked on the emulator in light and dark; matches boards 5A and 5D.
+
+Decisions and differences from the board:
+- **Word line decimals:** the spec text says one decimal, the board's own examples show two (`2.05 lakh`). Two decimals, trailing zeros trimmed.
+- **Placeholder** reads "Type numbers" until pasting into the expression exists; the board says "Type or paste numbers".
+- **Not built yet on this screen:** History and More buttons (hidden rather than dead), the hint chip (needs storage to count three showings), editing the expression as a real text field and pasting, hold-to-repeat on backspace, the wide-screen layout (display left, keypad right, from 600 dp), scientific notation over 15 digits. The emulator named `New_Device` is about 1080 dp wide, so on it the phone layout just stretches; use `adb shell wm density 420` to see the phone design.
+
 ## Device findings (API 34 emulator, 2026-11-18)
 
 Checked by hand in two hosts: Android Settings search (a native EditText) and Chrome (a web page with a textarea and plain paragraphs).
@@ -121,7 +134,7 @@ Checked by hand in two hosts: Android Settings search (a native EditText) and Ch
 4. Words as operators (`into`, `plus`, `minus`) and `@` read as ×.
 5. Devanagari and Tamil digits on input; spoken form for TalkBack ("two lakh five thousand").
 6. A corpus-driven test: one file of real messy strings with expected results, one parameterised test.
-7. Main calculator screen (keypad, display, empty and error states), then History storage and saving from the sheet.
+7. History: storage, the History screen, saving from `=` and from the sheet; then the More menu and the hint chip. Wide-screen layout and an editable expression field.
 8. Onboarding, then the widget (the first second consumer, so extract `feature:*` modules then).
 
 ## Assumptions and risks
