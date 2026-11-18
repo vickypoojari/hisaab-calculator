@@ -1,6 +1,7 @@
 package `in`.simply.hisaab.feature.selection
 
 import android.app.Activity
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -11,8 +12,11 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** The real entry point: what Android sends when someone taps Calculate in the selection menu. */
 class SelectionActivityTest {
@@ -40,6 +44,41 @@ class SelectionActivityTest {
 
             assertEquals(Activity.RESULT_OK, scenario.result.resultCode)
             assertEquals("₹1,650", scenario.result.resultData.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString())
+        }
+    }
+
+    @Test
+    fun replace_also_puts_the_same_text_on_the_clipboard_for_hosts_that_drop_it() {
+        // Some hosts (Chrome) collapse their selection and ignore the result, so Replace must
+        // leave the answer on the clipboard as a fallback: one paste instead of retyping.
+        val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+        val clipboard = context.getSystemService(ClipboardManager::class.java)
+        val changed = CountDownLatch(1)
+        val listener = ClipboardManager.OnPrimaryClipChangedListener { changed.countDown() }
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { clipboard.addPrimaryClipChangedListener(listener) }
+        try {
+            ActivityScenario.launchActivityForResult<SelectionActivity>(
+                processText("Order Zomato ₹1,200 + ₹450 delivery"),
+            ).use { scenario ->
+                compose.onNodeWithText("Replace with result").performClick()
+                scenario.result // wait until the activity has finished
+
+                assertTrue("clipboard was not written", changed.await(5, TimeUnit.SECONDS))
+                assertEquals("₹1,650", readClipboardInBackground(clipboard))
+            }
+        } finally {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { clipboard.removePrimaryClipChangedListener(listener) }
+        }
+    }
+
+    /** Android blocks background clipboard reads for apps; the shell identity is allowed to. */
+    private fun readClipboardInBackground(clipboard: ClipboardManager): String? {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        automation.adoptShellPermissionIdentity("android.permission.READ_CLIPBOARD_IN_BACKGROUND")
+        try {
+            return clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+        } finally {
+            automation.dropShellPermissionIdentity()
         }
     }
 

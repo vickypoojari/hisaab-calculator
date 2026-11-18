@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import `in`.simply.hisaab.MainActivity
+import `in`.simply.hisaab.R
 import `in`.simply.hisaab.core.designsystem.HisaabTheme
 
 /**
@@ -70,14 +72,25 @@ class SelectionActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Hands the answer back to the host. Some hosts (Chrome) collapse their selection when this
+     * sheet opens and then ignore the result, so the same text also goes on the clipboard: a
+     * failed Replace costs one paste instead of retyping.
+     */
     private fun replaceAndClose(text: String) {
+        putOnClipboard(text)
+        Toast.makeText(applicationContext, R.string.selection_also_copied, Toast.LENGTH_SHORT).show()
         setResult(Activity.RESULT_OK, Intent().putExtra(Intent.EXTRA_PROCESS_TEXT, text))
         finish()
     }
 
     private fun copyAndClose(text: String) {
-        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Hisaab result", text))
+        putOnClipboard(text)
         finish()
+    }
+
+    private fun putOnClipboard(text: String) {
+        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Hisaab result", text))
     }
 
     private fun openAppAndClose() {

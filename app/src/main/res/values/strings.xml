@@ -11,6 +11,7 @@
     <string name="selection_replace_with_result">Replace with result</string>
     <string name="selection_replace_with">Replace with %1$s</string>
     <string name="selection_copy">Copy</string>
+    <string name="selection_also_copied">Also copied to clipboard</string>
     <string name="selection_read_only_note">This text can’t be edited, so Replace isn’t shown.</string>
     <string name="selection_privacy">Calculated on your phone. Nothing is sent anywhere.</string>
     <string name="selection_ambiguous_title">Check this reading</string>
