@@ -2,4 +2,12 @@
 <resources>
 
     <style name="Theme.HisaabCalculator" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- The result sheet floats over the host app. The 32% scrim is drawn by the sheet itself. -->
+    <style name="Theme.HisaabCalculator.Translucent" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

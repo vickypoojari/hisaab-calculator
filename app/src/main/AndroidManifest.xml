@@ -24,6 +24,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Shows up as "Calculate" in the text-selection toolbar, often under the three dots. -->
+        <activity
+            android:name=".feature.selection.SelectionActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:label="@string/selection_action_label"
+            android:taskAffinity=""
+            android:theme="@style/Theme.HisaabCalculator.Translucent">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
