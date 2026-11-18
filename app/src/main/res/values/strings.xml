@@ -1,3 +1,27 @@
 <resources>
     <string name="app_name">Hisaab - Calculator</string>
+
+    <!-- Text-selection sheet. Hindi (values-hi) and Tamil (values-ta) strings run 30-40% longer:
+         never give these a fixed width. -->
+    <string name="selection_action_label">Calculate</string>
+    <string name="selection_title">Calculate</string>
+    <string name="selection_close">Close</string>
+    <string name="selection_read_as">Read as</string>
+    <string name="selection_ignored_words">Ignored words: %1$s</string>
+    <string name="selection_replace_with_result">Replace with result</string>
+    <string name="selection_replace_with">Replace with %1$s</string>
+    <string name="selection_copy">Copy</string>
+    <string name="selection_read_only_note">This text can’t be edited, so Replace isn’t shown.</string>
+    <string name="selection_privacy">Calculated on your phone. Nothing is sent anywhere.</string>
+    <string name="selection_ambiguous_title">Check this reading</string>
+    <string name="selection_ambiguous_body">Your text can mean more than one thing.</string>
+    <string name="selection_ambiguous_question">What did you mean?</string>
+    <string name="selection_nothing_title">No numbers to calculate</string>
+    <string name="selection_nothing_body">Select text with numbers in it, like “₹450 + 120”, then tap Calculate.</string>
+    <string name="selection_you_selected">You selected “%1$s”</string>
+    <string name="selection_open_app">Open Hisaab</string>
+    <string name="error_divide_by_zero">Can’t divide by zero</string>
+    <string name="error_divide_by_zero_hint">Change the 0 to another number and the answer will show here.</string>
+    <string name="error_unreadable">Can’t read this</string>
+    <string name="error_unreadable_hint">Check the numbers and signs in the text, then try again.</string>
 </resources>
