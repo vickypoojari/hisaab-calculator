@@ -15,6 +15,13 @@ public sealed interface CalcResult {
         val hasCurrency: Boolean,
     ) : CalcResult
 
+    /** The text can mean more than one thing. [readings] is ordered most likely first. */
+    public data class Ambiguous(
+        val readings: List<Reading>,
+        val ignoredWords: List<String>,
+        val hasCurrency: Boolean,
+    ) : CalcResult
+
     /** The text held no number, so there is nothing to compute. */
     public data object NothingToCalculate : CalcResult
 
@@ -24,6 +31,9 @@ public sealed interface CalcResult {
 
 public enum class ErrorReason { DIVIDE_BY_ZERO, UNREADABLE }
 
+/** One possible reading of ambiguous text: how it was read and what it comes to. */
+public data class Reading(val readAs: String, val value: BigDecimal)
+
 public object Calculator {
     private val DIVISION = MathContext(10, RoundingMode.HALF_UP)
 
@@ -31,16 +41,41 @@ public object Calculator {
         val scan = Scanner.scan(text)
         val tokens = scan.tokens
         if (tokens.none { it is Token.Num }) return CalcResult.NothingToCalculate
-        if (!isAlternating(tokens)) return CalcResult.Error(ErrorReason.UNREADABLE)
+        if (!isAlternating(tokens)) return ambiguity(scan) ?: CalcResult.Error(ErrorReason.UNREADABLE)
 
         val value = compute(tokens) ?: return CalcResult.Error(ErrorReason.DIVIDE_BY_ZERO)
         return CalcResult.Success(
             value = value,
-            readAs = tokens.joinToString(" ") { it.display },
+            readAs = tokens.readAs(),
             ignoredWords = scan.ignoredWords,
-            hasCurrency = tokens.any { it is Token.Num && it.currency },
+            hasCurrency = tokens.hasCurrency(),
         )
     }
+
+    /**
+     * An amount directly followed by a percent ("₹2,50,000 12%") has no operator, so it can be
+     * read as × or as +. Exactly one such gap is supported; anything messier is unreadable.
+     */
+    private fun ambiguity(scan: ScanResult): CalcResult? {
+        val tokens = scan.tokens
+        val gaps = (0 until tokens.size - 1).filter { i ->
+            val left = tokens[i]
+            val right = tokens[i + 1]
+            left is Token.Num && right is Token.Num && right.percent
+        }
+        val gap = gaps.singleOrNull() ?: return null
+        val readings = listOf('×', '+').mapNotNull { symbol ->
+            val candidate = tokens.toMutableList().apply { add(gap + 1, Token.Op(symbol)) }
+            if (!isAlternating(candidate)) return null
+            compute(candidate)?.let { Reading(candidate.readAs(), it) }
+        }
+        if (readings.isEmpty()) return null
+        return CalcResult.Ambiguous(readings, scan.ignoredWords, tokens.hasCurrency())
+    }
+
+    private fun List<Token>.readAs(): String = joinToString(" ") { it.display }
+
+    private fun List<Token>.hasCurrency(): Boolean = any { it is Token.Num && it.currency }
 
     /** A sum is number, operator, number, ... starting and ending with a number. */
     private fun isAlternating(tokens: List<Token>): Boolean =

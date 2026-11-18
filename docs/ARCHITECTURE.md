@@ -77,15 +77,22 @@ Allowed directions: `app → core:*`; `feature packages → core:*`; `core:parse
 
 Then tokens, test-first: contrast and type-scale tests (red on placeholder values, green on the design values).
 
+## More cycles done (each red, then green, committed)
+
+4. **Nothing to calculate:** no number (empty, blank, `₹`, lone operators) → `CalcResult.NothingToCalculate`. A single number is a valid result.
+5. **Errors:** `÷ 0` → `Error(DIVIDE_BY_ZERO)`; stray, leading or trailing operators and adjacent plain numbers → `Error(UNREADABLE)`. Scanner and evaluator split into `Scanner`/`Token`/`Calculator`.
+6. **Percent:** `a × p%`, `a ÷ p%` use p/100; `a ± p%` applies p% of the running total; bare `p%` is p/100; a space before `%` is allowed.
+7. **Ambiguity:** an amount directly followed by a percent (`Loan ₹2,50,000 12%`) → `Ambiguous` with readings ordered most likely first (× then +), rest of the sum kept, ignored words and currency flag carried. One gap only; more is unreadable.
+
 ## Next cycles (backlog, in order)
 
-1. Nothing to calculate (no numbers) → `NothingToCalculate`.
-2. Divide by zero and unreadable text (`12 + + / 5`) → typed errors.
-3. Percent rules: `a × p%`, `a + p%`, bare `p%`.
-4. Ambiguity: `Loan ₹2,50,000 12%` → two readings with values, most likely first.
-5. Word line (lakh/crore), currency formatting, negatives with `−`, scientific over 15 digits.
-6. Devanagari and Tamil digits on input; spoken form for TalkBack.
-7. Replace/Copy output rules (plain digits for Copy).
+1. Unary minus (`−5 + 3`) and negative results shown with `−`.
+2. Word line (lakh/crore, from 1 lakh), currency formatting rules (₹, trailing zeros trimmed, 10 significant digits, half-up shown).
+3. "Too large" error and scientific notation over 15 digits; Copy output gives plain digits.
+4. Words as operators (`into`, `plus`, `minus`) and `@` read as ×.
+5. Devanagari and Tamil digits on input; spoken form for TalkBack ("two lakh five thousand").
+6. A corpus-driven test: one file of real messy strings with expected results, one parameterised test.
+7. Then the walking skeleton in `:app`: `ACTION_PROCESS_TEXT` activity, result sheet states A–E from the parser result types, ViewModel tests first.
 
 ## Assumptions and risks
 
@@ -94,6 +101,6 @@ Then tokens, test-first: contrast and type-scale tests (red on placeholder value
 - **Design gap:** the board's example lists only "Zomato, delivery" as ignored words for `Order Zomato …`. A deterministic rule ignores every non-numeric word, so "Order" is ignored too. Confirm or give a rule for leading words.
 - **Risk, OEM menus:** Calculate may sit under "More" or not appear in some apps (custom text views, WebViews). Needs real-device checks early.
 - **Risk, boundary erosion** inside `:app` under deadline pressure. Mitigation: the "no feature imports another feature" rule, and extract at the first second consumer (widget).
-- **Risk, parser surface:** malformed input is not yet handled (backlog 1–2); do not wire the parser to UI before those cycles are green.
+- **Parser surface:** errors, percent and ambiguity are in. Unary minus, the word line and spoken forms are still open (backlog 1–5); the result types the UI needs (success, ambiguous, nothing, error) already exist.
 - Toolchain: Gradle daemon is pinned to JDK 25 by `gradle/gradle-daemon-jvm.properties`; CI uses JDK 25 to match.
 - Out of scope by constraint: scientific mode, camera input, AI features.
