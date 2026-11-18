@@ -25,6 +25,15 @@ class NumberFormatterTest {
     }
 
     @Test
+    fun `negative numbers keep the sign in front and group the digits`() {
+        // Design board: leading U+2212 minus, not red, not a hyphen.
+        assertEquals("−5", indian("-5"))
+        assertEquals("−1,200", indian("-1200"))
+        assertEquals("−12,345", indian("-12345"))
+        assertEquals("−12,34,567.5", indian("-1234567.5"))
+    }
+
+    @Test
     fun `international grouping uses groups of three`() {
         assertEquals(
             "1,234,567.89",

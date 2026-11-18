@@ -6,6 +6,7 @@ public enum class GroupingStyle { INDIAN, INTERNATIONAL }
 
 public object NumberFormatter {
     public fun format(value: BigDecimal, style: GroupingStyle = GroupingStyle.INDIAN): String {
+        if (value.signum() < 0) return "−" + format(value.negate(), style)
         val plain = value.toPlainString()
         val integerPart = plain.substringBefore('.')
         val fraction = plain.substringAfter('.', missingDelimiterValue = "")
