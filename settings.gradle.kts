@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -24,3 +25,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Hisaab - Calculator"
 include(":app")
+include(":core:parser")
+include(":core:designsystem")
