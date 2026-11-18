@@ -39,9 +39,9 @@ public object Calculator {
 
     public fun evaluate(text: String): CalcResult {
         val scan = Scanner.scan(text)
-        val tokens = scan.tokens
+        val tokens = foldLeadingSign(scan.tokens)
         if (tokens.none { it is Token.Num }) return CalcResult.NothingToCalculate
-        if (!isAlternating(tokens)) return ambiguity(scan) ?: CalcResult.Error(ErrorReason.UNREADABLE)
+        if (!isAlternating(tokens)) return ambiguity(scan, tokens) ?: CalcResult.Error(ErrorReason.UNREADABLE)
 
         val value = compute(tokens) ?: return CalcResult.Error(ErrorReason.DIVIDE_BY_ZERO)
         return CalcResult.Success(
@@ -56,8 +56,7 @@ public object Calculator {
      * An amount directly followed by a percent ("₹2,50,000 12%") has no operator, so it can be
      * read as × or as +. Exactly one such gap is supported; anything messier is unreadable.
      */
-    private fun ambiguity(scan: ScanResult): CalcResult? {
-        val tokens = scan.tokens
+    private fun ambiguity(scan: ScanResult, tokens: List<Token>): CalcResult? {
         val gaps = (0 until tokens.size - 1).filter { i ->
             val left = tokens[i]
             val right = tokens[i + 1]
@@ -71,6 +70,16 @@ public object Calculator {
         }
         if (readings.isEmpty()) return null
         return CalcResult.Ambiguous(readings, scan.ignoredWords, tokens.hasCurrency())
+    }
+
+    /** A minus at the very start, directly before a number, is that number's sign. */
+    private fun foldLeadingSign(tokens: List<Token>): List<Token> {
+        val first = tokens.getOrNull(0)
+        val second = tokens.getOrNull(1)
+        if (first is Token.Op && first.symbol == '−' && second is Token.Num) {
+            return listOf(second.copy(value = second.value.negate(), negative = true)) + tokens.drop(2)
+        }
+        return tokens
     }
 
     private fun List<Token>.readAs(): String = joinToString(" ") { it.display }
@@ -127,8 +136,15 @@ public object Calculator {
 internal sealed interface Token {
     val display: String
 
-    data class Num(val value: BigDecimal, val text: String, val currency: Boolean, val percent: Boolean) : Token {
-        override val display: String get() = (if (currency) "₹" else "") + text + (if (percent) "%" else "")
+    data class Num(
+        val value: BigDecimal,
+        val text: String,
+        val currency: Boolean,
+        val percent: Boolean,
+        val negative: Boolean = false,
+    ) : Token {
+        override val display: String
+            get() = (if (negative) "−" else "") + (if (currency) "₹" else "") + text + (if (percent) "%" else "")
     }
 
     data class Op(val symbol: Char) : Token {
