@@ -46,30 +46,44 @@ public object Calculator {
     private fun isAlternating(tokens: List<Token>): Boolean =
         tokens.size % 2 == 1 && tokens.withIndex().all { (i, t) -> (i % 2 == 0) == (t is Token.Num) }
 
-    /** Resolves × and ÷ first, then + and −, left to right. Null means division by zero. */
+    /**
+     * Resolves × and ÷ first, then + and −, left to right. Percent rules (design board):
+     * in × and ÷ a percent is p/100; after + or − it is p% of the running total.
+     * Null means division by zero.
+     */
     private fun compute(tokens: List<Token>): BigDecimal? {
-        val numbers = tokens.filterIsInstance<Token.Num>().map { it.value }
+        val numbers = tokens.filterIsInstance<Token.Num>()
         val operators = tokens.filterIsInstance<Token.Op>().map { it.symbol }
 
-        val terms = mutableListOf(numbers.first())
+        // A term is a product/quotient chain. `bare` is true while it is still one lone percent.
+        class Term(var value: BigDecimal, var bare: Boolean)
+        val terms = mutableListOf(Term(numbers.first().value, numbers.first().percent))
         val addOps = mutableListOf<Char>()
         operators.forEachIndexed { i, op ->
             val next = numbers[i + 1]
+            val operand = if (next.percent) next.value.movePointLeft(2) else next.value
             when (op) {
-                '×' -> terms[terms.lastIndex] = terms.last() * next
-                '÷' -> {
-                    if (next.signum() == 0) return null
-                    terms[terms.lastIndex] = terms.last().divide(next, DIVISION)
+                '×', '÷' -> {
+                    val term = terms.last()
+                    if (term.bare) {
+                        term.value = term.value.movePointLeft(2)
+                        term.bare = false
+                    }
+                    if (op == '÷' && operand.signum() == 0) return null
+                    term.value = if (op == '×') term.value * operand else term.value.divide(operand, DIVISION)
                 }
                 else -> {
                     addOps += op
-                    terms += next
+                    terms += Term(next.value, next.percent)
                 }
             }
         }
-        var total = terms.first()
+        val first = terms.first()
+        var total = if (first.bare) first.value.movePointLeft(2) else first.value
         addOps.forEachIndexed { i, op ->
-            total = if (op == '+') total + terms[i + 1] else total - terms[i + 1]
+            val term = terms[i + 1]
+            val delta = if (term.bare) total * term.value.movePointLeft(2) else term.value
+            total = if (op == '+') total + delta else total - delta
         }
         return total.stripTrailingZeros().let { if (it.scale() < 0) it.setScale(0) else it }
     }
@@ -78,8 +92,8 @@ public object Calculator {
 internal sealed interface Token {
     val display: String
 
-    data class Num(val value: BigDecimal, val text: String, val currency: Boolean) : Token {
-        override val display: String get() = (if (currency) "₹" else "") + text
+    data class Num(val value: BigDecimal, val text: String, val currency: Boolean, val percent: Boolean) : Token {
+        override val display: String get() = (if (currency) "₹" else "") + text + (if (percent) "%" else "")
     }
 
     data class Op(val symbol: Char) : Token {
@@ -102,9 +116,16 @@ internal object Scanner {
             val number = NUMBER.matchAt(text, index)
             when {
                 number != null -> {
-                    tokens += Token.Num(BigDecimal(number.value.replace(",", "")), number.value, pendingCurrency)
+                    var end = number.range.last + 1
+                    var after = end
+                    while (after < text.length && text[after] == ' ') after++
+                    val percent = after < text.length && text[after] == '%'
+                    if (percent) end = after + 1
+                    tokens += Token.Num(
+                        BigDecimal(number.value.replace(",", "")), number.value, pendingCurrency, percent,
+                    )
                     pendingCurrency = false
-                    index = number.range.last + 1
+                    index = end
                 }
                 char == '₹' -> {
                     pendingCurrency = true
