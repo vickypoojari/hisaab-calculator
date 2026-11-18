@@ -43,6 +43,9 @@ private fun HisaabColors.toMaterial(dark: Boolean) =
         darkColorScheme(
             primary = primary, onPrimary = onPrimary,
             primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
+            // Tonal buttons use the secondary roles; the design has one accent, so they follow primary.
+            secondary = primary, onSecondary = onPrimary,
+            secondaryContainer = primaryContainer, onSecondaryContainer = onPrimaryContainer,
             background = background, onBackground = onSurface,
             surface = background, onSurface = onSurface,
             surfaceContainer = surfaceContainer, onSurfaceVariant = onSurfaceVariant,
@@ -54,6 +57,9 @@ private fun HisaabColors.toMaterial(dark: Boolean) =
         lightColorScheme(
             primary = primary, onPrimary = onPrimary,
             primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
+            // Tonal buttons use the secondary roles; the design has one accent, so they follow primary.
+            secondary = primary, onSecondary = onPrimary,
+            secondaryContainer = primaryContainer, onSecondaryContainer = onPrimaryContainer,
             background = background, onBackground = onSurface,
             surface = background, onSurface = onSurface,
             surfaceContainer = surfaceContainer, onSurfaceVariant = onSurfaceVariant,
