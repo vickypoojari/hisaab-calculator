@@ -31,9 +31,9 @@ Sequence chosen: **approach 3 → approach 2**, with only the structure that is 
 
 Allowed directions: `app → core:*`; `feature packages → core:*`; `core:parser` depends on no module and on **no Android or Compose artifact**; `core:*` never depends on `app` or on a feature. Enforced by the convention plugin: `hisaab.jvm.library` applies no Android plugin, so an Android import in the parser does not compile.
 
-### Feature packages inside `:app` (planned, not yet created)
+### Feature packages inside `:app`
 
-`feature.selection`, `feature.calculator`, `feature.history`, `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
+`feature.selection` exists (walking skeleton, below). Planned: `feature.calculator`, `feature.history`, `feature.onboarding`, `feature.widget`. Rule: a feature package never imports another feature package; shared things move to `core`. Splitting into modules later is a move, not a redesign.
 
 ### Version catalog and convention plugins
 
@@ -66,7 +66,7 @@ Allowed directions: `app → core:*`; `feature packages → core:*`; `core:parse
 | Parser, formatter | JUnit4 via `kotlin-test`, a growing corpus of messy strings | `:core:parser` (pure JVM) |
 | Tokens | JUnit4, WCAG contrast function | `:core:designsystem` |
 | ViewModels / UI state | JUnit4 + `kotlinx-coroutines-test` + Turbine (add with the first ViewModel) | `:app` unit tests |
-| Compose UI | Compose UI test (`ui-test-junit4`, already in catalog) for the sheet states | `:app` androidTest |
+| Compose UI | Compose UI test (`ui-test-junit4`) for the sheet states, plus `ActivityScenario` tests for the real `PROCESS_TEXT` entry point | `:app` androidTest (needs an emulator or device: `./gradlew :app:connectedDebugAndroidTest`) |
 | OEM behaviour | Manual matrix: menu placement, `ACTION_PROCESS_TEXT` on at least two OEMs | real devices |
 
 ## 3. First TDD cycles (done, each committed green)
@@ -84,15 +84,25 @@ Then tokens, test-first: contrast and type-scale tests (red on placeholder value
 6. **Percent:** `a × p%`, `a ÷ p%` use p/100; `a ± p%` applies p% of the running total; bare `p%` is p/100; a space before `%` is allowed.
 7. **Ambiguity:** an amount directly followed by a percent (`Loan ₹2,50,000 12%`) → `Ambiguous` with readings ordered most likely first (× then +), rest of the sum kept, ignored words and currency flag carried. One gap only; more is unreadable.
 
+## Walking skeleton: select text → parser → sheet → Replace/Copy (done)
+
+8. **Negative formatting** (`NumberFormatter`): `−12,345` with U+2212. A real grouping bug found while planning the presenter.
+9. **`SelectionPresenter`** (JVM tests): parser result → one of the five sheet states. Result always grouped; Copy plain digits; Replace keeps ₹/grouping only if the source used them; no Replace text in read-only fields; ambiguous readings with the most likely preselected.
+10. **`SelectionSheet`** (Compose, tested on a device): states A–E from the design board, tokens only, live regions, 48 dp targets.
+11. **`SelectionActivity`** (`ACTION_PROCESS_TEXT`, translucent): Replace returns the text via the activity result, Copy writes the clipboard, Close cancels, missing text shows "nothing to calculate". Verified on an API 34 emulator: 14 instrumented tests, the sheet renders over the home screen, and the scrim measures exactly 32%.
+
+Not in the skeleton yet: Edit expression and "Type it myself", the lakh/crore word line, History saving, and error screens showing the "Read as" expression. Still unverified: how "Calculate" appears inside real apps' selection menus (needs a device pass on at least two phone makers).
+
 ## Next cycles (backlog, in order)
 
-1. Unary minus (`−5 + 3`) and negative results shown with `−`.
+1. Unary minus in input (`−5 + 3`); negative results already format correctly.
 2. Word line (lakh/crore, from 1 lakh), currency formatting rules (₹, trailing zeros trimmed, 10 significant digits, half-up shown).
 3. "Too large" error and scientific notation over 15 digits; Copy output gives plain digits.
 4. Words as operators (`into`, `plus`, `minus`) and `@` read as ×.
 5. Devanagari and Tamil digits on input; spoken form for TalkBack ("two lakh five thousand").
 6. A corpus-driven test: one file of real messy strings with expected results, one parameterised test.
-7. Then the walking skeleton in `:app`: `ACTION_PROCESS_TEXT` activity, result sheet states A–E from the parser result types, ViewModel tests first.
+7. Main calculator screen (keypad, display, empty and error states), then History storage and saving from the sheet.
+8. Onboarding, then the widget (the first second consumer, so extract `feature:*` modules then).
 
 ## Assumptions and risks
 
