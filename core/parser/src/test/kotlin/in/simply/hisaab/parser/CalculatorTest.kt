@@ -1,0 +1,39 @@
+package `in`.simply.hisaab.parser
+
+import java.math.BigDecimal
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+
+class CalculatorTest {
+
+    private fun valueOf(text: String): BigDecimal {
+        val result = Calculator.evaluate(text)
+        assertIs<CalcResult.Success>(result, "expected success for \"$text\" but got $result")
+        return result.value
+    }
+
+    @Test
+    fun `adds numbers written with Indian grouping`() {
+        assertEquals(BigDecimal("205000"), valueOf("1,20,000 + 85,000"))
+    }
+
+    @Test
+    fun `multiplication binds tighter than addition`() {
+        assertEquals(BigDecimal("14"), valueOf("2 + 3 × 4"))
+    }
+
+    @Test
+    fun `accepts x star and slash as operators and both minus signs`() {
+        assertEquals(BigDecimal("12"), valueOf("3 x 4"))
+        assertEquals(BigDecimal("12"), valueOf("3 * 4"))
+        assertEquals(BigDecimal("5"), valueOf("10 / 2"))
+        assertEquals(BigDecimal("6"), valueOf("10 − 4"))
+        assertEquals(BigDecimal("6"), valueOf("10 - 4"))
+    }
+
+    @Test
+    fun `division keeps decimals up to ten significant digits`() {
+        assertEquals(BigDecimal("0.3333333333"), valueOf("1 ÷ 3"))
+    }
+}
