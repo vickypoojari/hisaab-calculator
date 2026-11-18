@@ -5,7 +5,15 @@ import java.math.MathContext
 import java.math.RoundingMode
 
 public sealed interface CalcResult {
-    public data class Success(val value: BigDecimal) : CalcResult
+    public data class Success(
+        val value: BigDecimal,
+        /** The expression as the app understood it, e.g. "₹1,200 + ₹450". */
+        val readAs: String,
+        /** Words that were not part of the sum, in the order they appeared. */
+        val ignoredWords: List<String>,
+        /** True when the source text marked at least one amount with ₹. */
+        val hasCurrency: Boolean,
+    ) : CalcResult
 }
 
 public object Calculator {
@@ -15,24 +23,64 @@ public object Calculator {
     public fun evaluate(text: String): CalcResult {
         val numbers = mutableListOf<BigDecimal>()
         val operators = mutableListOf<Char>()
+        val readAs = mutableListOf<String>()
+        val ignored = mutableListOf<String>()
+        var hasCurrency = false
+        var pendingCurrency = false
         var index = 0
         while (index < text.length) {
-            val match = NUMBER.matchAt(text, index)
-            if (match != null) {
-                numbers += BigDecimal(match.value.replace(",", ""))
-                index = match.range.last + 1
-                continue
+            val char = text[index]
+            val number = NUMBER.matchAt(text, index)
+            when {
+                number != null -> {
+                    numbers += BigDecimal(number.value.replace(",", ""))
+                    readAs += (if (pendingCurrency) "₹" else "") + number.value
+                    pendingCurrency = false
+                    index = number.range.last + 1
+                }
+                char == '₹' -> {
+                    hasCurrency = true
+                    pendingCurrency = true
+                    index++
+                }
+                char.isLetter() -> {
+                    val end = text.indexOfFirst(index) { !it.isLetter() }
+                    val word = text.substring(index, end)
+                    if (word == "x" || word == "X") {
+                        operators += '×'
+                        readAs += "×"
+                    } else {
+                        ignored += word
+                    }
+                    index = end
+                }
+                else -> {
+                    operatorFor(char)?.let {
+                        operators += it
+                        readAs += it.toString()
+                    }
+                    index++
+                }
             }
-            operatorFor(text[index])?.let { operators += it }
-            index++
         }
-        return CalcResult.Success(compute(numbers, operators))
+        return CalcResult.Success(
+            value = compute(numbers, operators),
+            readAs = readAs.joinToString(" "),
+            ignoredWords = ignored,
+            hasCurrency = hasCurrency,
+        )
+    }
+
+    private fun String.indexOfFirst(from: Int, predicate: (Char) -> Boolean): Int {
+        var i = from
+        while (i < length && !predicate(this[i])) i++
+        return i
     }
 
     private fun operatorFor(char: Char): Char? = when (char) {
         '+' -> '+'
         '-', '−' -> '−'
-        '×', 'x', 'X', '*' -> '×'
+        '×', '*' -> '×'
         '÷', '/' -> '÷'
         else -> null
     }
