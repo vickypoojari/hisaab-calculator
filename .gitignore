@@ -26,3 +26,9 @@ keystore.properties
 # Release outputs
 /app/release/
 *.aab
+
+# Machine-specific IDE files
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+/.idea/gradle.xml
+/.idea/vcs.xml
