@@ -17,3 +17,12 @@ local.properties
 # Module build outputs
 **/build/
 .kotlin/
+
+# Signing secrets: never commit
+*.jks
+*.keystore
+keystore.properties
+
+# Release outputs
+/app/release/
+*.aab
