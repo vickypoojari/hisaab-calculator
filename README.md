@@ -32,6 +32,40 @@ Everything is calculated on your phone. Hisaab has no internet access, no ads, a
 |:---:|:---:|:---:|:---:|:---:|
 | <img src="docs/play-store/screenshots/01-calculate-sheet.png" width="160"> | <img src="docs/play-store/screenshots/02-select-text.png" width="160"> | <img src="docs/play-store/screenshots/03-dark-theme.png" width="160"> | <img src="docs/play-store/screenshots/04-calculator.png" width="160"> | <img src="docs/play-store/screenshots/05-history.png" width="160"> |
 
+## Play Store Listing
+
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=in.simply.hisaab">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80">
+  </a>
+</p>
+
+### App Details
+| Field | Information |
+| --- | --- |
+| **App Name** | Hisaab - Calculator |
+| **Category** | Productivity |
+| **Installs** | 0+ Downloads |
+| **Content Rating** | Rated for 3+ |
+| **Last Updated** | Nov 22, 2026 |
+| **Developer** | Simplicated (Vicky Poojari) |
+| **Contact Email** | vickypoojari681@gmail.com |
+
+*(Note: Rating, Current Version, and Required Android Version are not currently displayed on the live store page.)*
+
+### What Users Get
+Hisaab is a privacy-first, on-device calculator that works right where your numbers are. It lets you select text inside other apps (like chats or browsers) and calculate the math instantly. It features a simple keypad, Indian number formatting (lakh and crore ready), and a history tracker—all operating seamlessly without internet access or ads.
+
+### Store Screenshots
+
+| App Icon | Feature Graphic |
+|:---:|:---:|
+| <img src="docs/playstore/icon.png" width="160"> | <img src="docs/playstore/feature-graphic.png" width="320"> |
+
+| Calculate Sheet | Dark Theme | Main Calculator | History |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/playstore/screenshot-2.png" width="160"> | <img src="docs/playstore/screenshot-3.png" width="160"> | <img src="docs/playstore/screenshot-4.png" width="160"> | <img src="docs/playstore/screenshot-5.png" width="160"> |
+
 ## Tech Stack
 - **Language**: Kotlin
 - **UI Toolkit**: Jetpack Compose
